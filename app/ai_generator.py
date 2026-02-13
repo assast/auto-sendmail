@@ -3,6 +3,7 @@ AI 内容生成模块
 使用 OpenAI 兼容 API 生成拟人化的日常聊天邮件内容
 """
 
+import json
 import logging
 from dataclasses import dataclass
 from openai import OpenAI
@@ -67,7 +68,6 @@ class AIGenerator:
             logger.debug(f"AI 原始返回: {raw_content}")
 
             # 解析 JSON 响应
-            import json
 
             # 清理可能的 markdown 代码块标记
             if raw_content.startswith("```"):
