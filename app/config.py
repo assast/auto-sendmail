@@ -48,6 +48,8 @@ class AppConfig:
     ai_model: str                # 模型名称
     accounts: list[AccountConfig] = field(default_factory=list)
     timezone: str = "Asia/Shanghai"  # 时区
+    tg_bot_token: str = ""           # Telegram Bot Token（可选）
+    tg_chat_id: str = ""             # Telegram Chat ID（可选）
 
     def __post_init__(self):
         if not self.resend_api_key:
@@ -66,6 +68,8 @@ def load_config() -> AppConfig:
     ai_api_base = os.environ.get("AI_API_BASE", "https://api.openai.com/v1")
     ai_model = os.environ.get("AI_MODEL", "gpt-4o-mini")
     timezone = os.environ.get("TZ", "Asia/Shanghai")
+    tg_bot_token = os.environ.get("TG_BOT_TOKEN", "")
+    tg_chat_id = os.environ.get("TG_CHAT_ID", "")
 
     # 加载账号配置（JSON 数组）
     accounts_json = os.environ.get("ACCOUNTS", "[]")
@@ -101,6 +105,8 @@ def load_config() -> AppConfig:
         ai_model=ai_model,
         accounts=accounts,
         timezone=timezone,
+        tg_bot_token=tg_bot_token,
+        tg_chat_id=tg_chat_id,
     )
 
     logger.info(f"配置加载成功，共 {len(accounts)} 个账号:")

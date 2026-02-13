@@ -61,6 +61,8 @@ python -m app.main
 | `AI_API_BASE` | API Base URL | `https://api.openai.com/v1` |
 | `AI_MODEL` | 模型名称 | `gpt-4o-mini` |
 | `TZ` | 时区 | `Asia/Shanghai` |
+| `TG_BOT_TOKEN` | Telegram Bot Token（可选） | - |
+| `TG_CHAT_ID` | Telegram Chat ID（可选） | - |
 
 ### 账号配置
 

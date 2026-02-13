@@ -12,6 +12,7 @@ from apscheduler.triggers.cron import CronTrigger
 from app.config import AppConfig, AccountConfig
 from app.ai_generator import AIGenerator
 from app.email_sender import EmailSender
+from app.telegram_notifier import TelegramNotifier
 
 logger = logging.getLogger(__name__)
 
@@ -20,10 +21,11 @@ def send_email_task(
     account: AccountConfig,
     ai_generator: AIGenerator,
     email_sender: EmailSender,
+    tg_notifier: TelegramNotifier,
 ):
     """
     单个账号的邮件发送任务
-    流程：AI 生成内容 → 发送邮件 → 记录日志
+    流程：AI 生成内容 → 发送邮件 → TG 通知 → 记录日志
     """
     logger.info(f"{'='*50}")
     logger.info(f"⏰ 触发定时任务: [{account.name}]")
@@ -47,8 +49,22 @@ def send_email_task(
 
         logger.info(f"✅ [{account.name}] 任务完成")
 
+        # Step 3: TG 通知成功
+        tg_notifier.notify_success(
+            account_name=account.name,
+            to_email=account.to_email,
+            subject=content.subject,
+        )
+
     except Exception as e:
         logger.error(f"❌ [{account.name}] 任务失败: {e}", exc_info=True)
+
+        # TG 通知失败
+        tg_notifier.notify_failure(
+            account_name=account.name,
+            to_email=account.to_email,
+            error=str(e),
+        )
 
     logger.info(f"{'='*50}")
 
@@ -94,6 +110,10 @@ def create_scheduler(config: AppConfig) -> BlockingScheduler:
         model=config.ai_model,
     )
     email_sender = EmailSender(api_key=config.resend_api_key)
+    tg_notifier = TelegramNotifier(
+        bot_token=config.tg_bot_token,
+        chat_id=config.tg_chat_id,
+    )
 
     # 为每个账号注册定时任务
     for account in config.accounts:
@@ -102,7 +122,7 @@ def create_scheduler(config: AppConfig) -> BlockingScheduler:
             scheduler.add_job(
                 send_email_task,
                 trigger=trigger,
-                args=[account, ai_generator, email_sender],
+                args=[account, ai_generator, email_sender, tg_notifier],
                 id=f"sendmail_{account.name}",
                 name=f"发送邮件 [{account.name}]",
                 misfire_grace_time=300,  # 5 分钟容错
