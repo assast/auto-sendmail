@@ -1,0 +1,9 @@
+services:
+  auto-sendmail:
+    image: ghcr.io/assast/auto-sendmail:latest
+    container_name: auto-sendmail
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - TZ=Asia/Shanghai
