@@ -1,15 +1,54 @@
 """
 配置加载模块
 支持多账号配置，每个账号可设置独立的 cron 表达式和 AI prompt
+支持全局默认值：from_email（自动生成人名+域名）、from_name（自动生成）、ai_prompt
 """
 
 import json
 import os
+import random
 import logging
 from dataclasses import dataclass, field
 from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+# 常见英文名，用于自动生成发件人
+FIRST_NAMES = [
+    "James", "John", "Robert", "Michael", "David", "William", "Richard", "Joseph",
+    "Thomas", "Charles", "Mary", "Patricia", "Jennifer", "Linda", "Barbara",
+    "Elizabeth", "Susan", "Jessica", "Sarah", "Karen", "Emily", "Emma", "Olivia",
+    "Sophia", "Isabella", "Daniel", "Matthew", "Anthony", "Mark", "Steven",
+    "Andrew", "Paul", "Joshua", "Kenneth", "Kevin", "Brian", "George", "Timothy",
+    "Ronald", "Edward", "Jason", "Jeffrey", "Ryan", "Jacob", "Nicholas",
+    "Alice", "Grace", "Chloe", "Lily", "Hannah", "Mia", "Ella", "Charlotte",
+]
+
+LAST_NAMES = [
+    "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis",
+    "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson",
+    "Thomas", "Taylor", "Moore", "Jackson", "Martin", "Lee", "Thompson", "White",
+    "Harris", "Clark", "Lewis", "Robinson", "Walker", "Young", "Allen",
+    "King", "Wright", "Scott", "Torres", "Hill", "Adams", "Nelson", "Baker",
+    "Carter", "Mitchell", "Roberts", "Turner", "Phillips", "Campbell", "Parker",
+]
+
+
+def _generate_name() -> tuple[str, str]:
+    """生成一个随机英文人名，返回 (first_name, full_name)"""
+    first = random.choice(FIRST_NAMES)
+    last = random.choice(LAST_NAMES)
+    return first.lower(), f"{first} {last}"
+
+
+def _generate_email(domain: str) -> tuple[str, str]:
+    """
+    自动生成发件人邮箱和人名
+    返回 (email, display_name)
+    """
+    first_lower, full_name = _generate_name()
+    email = f"{first_lower}@{domain}"
+    return email, full_name
 
 
 @dataclass
@@ -71,6 +110,11 @@ def load_config() -> AppConfig:
     tg_bot_token = os.environ.get("TG_BOT_TOKEN", "")
     tg_chat_id = os.environ.get("TG_CHAT_ID", "")
 
+    # 全局默认值
+    default_email_domain = os.environ.get("DEFAULT_EMAIL_DOMAIN", "")
+    default_from_name = os.environ.get("DEFAULT_FROM_NAME", "")  # 空则自动生成
+    default_ai_prompt = os.environ.get("DEFAULT_AI_PROMPT", "")
+
     # 加载账号配置（JSON 数组）
     accounts_json = os.environ.get("ACCOUNTS", "[]")
     try:
@@ -85,14 +129,30 @@ def load_config() -> AppConfig:
     for i, acc in enumerate(accounts_raw):
         if not isinstance(acc, dict):
             raise ValueError(f"ACCOUNTS[{i}] 必须是 JSON 对象")
+
+        # 处理 from_email：账号自定义 > 全局域名自动生成
+        from_email = acc.get("from_email", "")
+        from_name = acc.get("from_name", "")
+
+        if not from_email and default_email_domain:
+            # 自动生成 email 和 name
+            from_email, auto_name = _generate_email(default_email_domain)
+            if not from_name:
+                from_name = auto_name if not default_from_name else default_from_name
+        elif not from_name:
+            from_name = default_from_name
+
+        # 处理 ai_prompt：账号自定义 > 全局默认
+        ai_prompt = acc.get("ai_prompt", "") or default_ai_prompt
+
         try:
             accounts.append(AccountConfig(
                 name=acc.get("name", f"account_{i}"),
-                from_email=acc.get("from_email", ""),
-                from_name=acc.get("from_name", ""),
+                from_email=from_email,
+                from_name=from_name,
                 to_email=acc.get("to_email", ""),
                 cron=acc.get("cron", ""),
-                ai_prompt=acc.get("ai_prompt", ""),
+                ai_prompt=ai_prompt,
                 subject_prefix=acc.get("subject_prefix", ""),
             ))
         except ValueError as e:
@@ -114,3 +174,4 @@ def load_config() -> AppConfig:
         logger.info(f"  - [{acc.name}] {acc.from_name}<{acc.from_email}> → {acc.to_email} | cron: {acc.cron}")
 
     return config
+

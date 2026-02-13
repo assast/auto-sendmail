@@ -63,6 +63,9 @@ python -m app.main
 | `TZ` | 时区 | `Asia/Shanghai` |
 | `TG_BOT_TOKEN` | Telegram Bot Token（可选） | - |
 | `TG_CHAT_ID` | Telegram Chat ID（可选） | - |
+| `DEFAULT_EMAIL_DOMAIN` | 全局发件人域名，自动生成 `随机英文名@域名` | - |
+| `DEFAULT_FROM_NAME` | 全局发件人名称，留空则自动生成 | - |
+| `DEFAULT_AI_PROMPT` | 全局默认 AI Prompt | - |
 
 ### 账号配置
 
@@ -71,11 +74,11 @@ python -m app.main
 | 字段 | 说明 | 必填 |
 |------|------|------|
 | `name` | 账号名称（用于日志标识） | ✅ |
-| `from_email` | 发件人邮箱（需在 Resend 验证域名） | ✅ |
-| `from_name` | 发件人显示名称 | 否 |
+| `from_email` | 发件人邮箱（不填则使用全局域名自动生成） | 否 |
+| `from_name` | 发件人显示名称（不填则自动生成或使用全局） | 否 |
 | `to_email` | 收件人邮箱 | ✅ |
 | `cron` | cron 表达式（分 时 日 月 周） | ✅ |
-| `ai_prompt` | AI 角色和场景描述 | ✅ |
+| `ai_prompt` | AI 角色和场景描述（不填则使用全局） | 否 |
 | `subject_prefix` | 邮件主题前缀 | 否 |
 
 ### Cron 表达式示例
